@@ -11,10 +11,9 @@ import CoreData
 
 class ViewController: UIViewController {
     
-    //let ROW_IDENTIFIER = "Cell"
+    let CELL_IDENTIFIER = "Cell"
 
     @IBOutlet weak var tableView: UITableView!
-//    var names: [String] = []
     var people: [NSManagedObject] = []
     
     override func viewDidLoad() {
@@ -25,7 +24,7 @@ class ViewController: UIViewController {
         title = "The List"
         tableView.register(
             UITableViewCell.self,
-            forCellReuseIdentifier: "Cell"
+            forCellReuseIdentifier: CELL_IDENTIFIER
         )
     }
     
@@ -107,7 +106,7 @@ class ViewController: UIViewController {
             print("Could not save. \(error), \(error.userInfo)")
         }
     }
-
+    
 }
 
 //MARK: - UITableViewDataSource
@@ -127,11 +126,74 @@ class ViewController: UIViewController {
            
         let person = people[indexPath.row]
         let cell = tableView.dequeueReusableCell(
-            withIdentifier: "Cell",
+            withIdentifier: CELL_IDENTIFIER,
             for: indexPath
         )
         cell.textLabel?.text = person.value(forKey: "name") as? String
         
         return cell
        }
+    
+    func tableView(
+        _ tableView: UITableView,
+        canEditRowAt indexPath: IndexPath
+    ) -> Bool {
+        return true
+    }
+    
+    func tableView(
+        _ tableView: UITableView,
+        commit editingStyle: UITableViewCell.EditingStyle,
+        forRowAt indexPath: IndexPath
+    ) {
+        if editingStyle == .delete {
+            
+            let alert = UIAlertController(
+                title: "Delete",
+                message: "Are you sure want to delete ?",
+                preferredStyle: .alert
+            )
+            
+            let cancelAction = UIAlertAction(
+                title: "Cancel",
+                style: .default
+            )
+            
+            let yesAction = UIAlertAction(
+                title: "Yes",
+                style: .default
+            ) {
+                 [unowned self] action in
+                
+                let person = self.people[indexPath.row]
+                
+                guard let appDelegate =
+                  UIApplication.shared.delegate as? AppDelegate else {
+                    return
+                }
+                let managedContext = appDelegate.persistentContainer.viewContext
+                
+                managedContext.delete(person)
+                do {
+                    try managedContext.save()
+                    self.people.remove(at: indexPath.row)
+                    self.tableView.deleteRows(
+                        at: [indexPath],
+                        with: .fade)
+                } catch let error as NSError {
+                    print("Could not delete. \(error), \(error.userInfo)")
+                }
+                
+                self.tableView.reloadData()
+            }
+            
+            alert.addAction(yesAction)
+            alert.addAction(cancelAction)
+            
+            present(alert, animated: true)
+        }
+        
+    }
+    
+    
    }
